@@ -1,27 +1,24 @@
-from flask import request
+print("THIS IS THE REAL APP FILE")
 
 from flask import Flask, jsonify, request
-
-import mysql.connector
+from database import get_db_connection
 
 app = Flask(__name__)
 
-# DATABASE CONNECTION
-db = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="Root@7024",
-    database="student_community"
-)
-
-cursor = db.cursor(dictionary=True)
-
+# ---------------- HOME ----------------
 @app.route("/")
 def home():
-    return "AI Student Community Backend Running 🚀"
-def generate_questions(text):
+    return "AI Student Community Backend Running "
 
-    # Temporary AI (dummy questions)
+
+@app.route("/test")
+def test():
+    return "TEST WORKING"
+
+
+
+# ---------------- DUMMY AI ----------------
+def generate_questions(text):
     questions = [
         {
             "question": "What is AI?",
@@ -40,30 +37,44 @@ def generate_questions(text):
             "answer": "B"
         }
     ]
-
     return questions
 
 
-
+# ---------------- STUDENTS ----------------
 @app.route("/students")
 def students():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
     cursor.execute("SELECT * FROM students")
     data = cursor.fetchall()
+
+    conn.close()
     return jsonify(data)
 
+
+# ---------------- GET QUIZ ----------------
 @app.route("/quiz/<int:note_id>")
 def get_quiz(note_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
 
     cursor.execute(
         "SELECT * FROM quizzes WHERE note_id=%s",
         (note_id,)
     )
-
     data = cursor.fetchall()
+
+    conn.close()
     return jsonify(data)
 
+
+# ---------------- SUBMIT QUIZ ----------------
 @app.route("/submit-quiz", methods=["POST"])
 def submit_quiz():
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
 
     user_id = request.json.get("user_id")
     answers = request.json.get("answers")
@@ -71,7 +82,6 @@ def submit_quiz():
     score = 0
 
     for ans in answers:
-
         quiz_id = ans["quiz_id"]
         selected = ans["selected_answer"]
 
@@ -93,13 +103,18 @@ def submit_quiz():
             VALUES (%s,%s,%s,%s)
         """, (user_id, quiz_id, selected, is_correct))
 
-    db.commit()
+    conn.commit()
+    conn.close()
 
-    return {"message": "Quiz submitted ✅", "score": score}
+    return {"message": "Quiz submitted ", "score": score}
 
 
+# ---------------- UPLOAD NOTES ----------------
 @app.route("/upload-notes", methods=["POST"])
 def upload_notes():
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
 
     filename = request.json.get("filename")
     filepath = request.json.get("filepath")
@@ -111,26 +126,30 @@ def upload_notes():
     """
 
     cursor.execute(sql, (filename, filepath, uploaded_by))
-    db.commit()
 
-    return {"message": "Notes uploaded successfully ✅"}
+    conn.commit()
+    conn.close()
 
+    return {"message": "Notes uploaded successfully "}
+
+
+# ---------------- GENERATE QUIZ ----------------
 @app.route("/generate-quiz/<int:note_id>")
 def generate_quiz(note_id):
 
-    # pretend we read note text
-    text = "Sample notes content"
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
 
+    text = "Sample notes content"
     questions = generate_questions(text)
 
     for q in questions:
-        sql = """
-        INSERT INTO quizzes
-        (note_id, question, option_a, option_b, option_c, option_d, correct_answer)
-        VALUES (%s,%s,%s,%s,%s,%s,%s)
-        """
-
-        cursor.execute(sql, (
+        cursor.execute("""
+            INSERT INTO quizzes
+            (note_id, question, option_a, option_b,
+             option_c, option_d, correct_answer)
+            VALUES (%s,%s,%s,%s,%s,%s,%s)
+        """, (
             note_id,
             q["question"],
             q["a"],
@@ -140,70 +159,95 @@ def generate_quiz(note_id):
             q["answer"]
         ))
 
-    db.commit()
+    conn.commit()
+    conn.close()
 
-    return {"message": "Quiz generated successfully ✅"}
+    return {"message": "Quiz generated successfully "}
 
 
+# ---------------- TEST UPLOAD ----------------
 @app.route("/test-upload")
 def test_upload():
 
-    sql = """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("""
         INSERT INTO notes (filename, filepath, uploaded_by)
-        VALUES (%s, %s, %s)
-    """
+        VALUES (%s,%s,%s)
+    """, ("ai_notes.pdf", "/uploads/ai_notes.pdf", 1))
 
-    cursor.execute(sql, ("ai_notes.pdf", "/uploads/ai_notes.pdf", 1))
-    db.commit()
+    conn.commit()
+    conn.close()
 
-    return "Test note inserted successfully ✅"
+    return "Test note inserted successfully "
 
+
+# ---------------- REGISTER ----------------
 @app.route("/register", methods=["POST"])
 def register():
 
-    data = request.json
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
 
+    data = request.json
     name = data["name"]
     email = data["email"]
     password = data["password"]
-    role = data["role"]
 
-    query = """
-    INSERT INTO users (name, email, password, role)
-    VALUES (%s, %s, %s, %s)
-    """
+    cursor.execute(
+        "INSERT INTO students(name,email,password) VALUES(%s,%s,%s)",
+        (name,email, password)
+    )
 
-    cursor.execute(query, (name, email, password, role))
-    db.commit()
+    conn.commit()
 
-    return jsonify({"message": "User registered successfully"})
+    cursor.close()
+    conn.close()
 
+    return jsonify({"message": "Registered successfully"})
+
+
+@app.route("/hello")
+def hello():
+    return "Hello working"
+
+
+
+
+
+# ---------------- LOGIN ----------------
 @app.route("/login", methods=["POST"])
 def login():
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
     data = request.json
 
-    email = data["email"]
-    password = data["password"]
-
-    query = "SELECT * FROM users WHERE email=%s AND password=%s"
-    cursor.execute(query, (email, password))
+    cursor.execute(
+        "SELECT * FROM students WHERE email=%s AND password=%s",
+        (data["email"], data["password"])
+    )
 
     user = cursor.fetchone()
 
+    conn.close()
+
     if user:
-        return jsonify({
-            "message": "Login successful",
-            "user": user
-        })
+        return jsonify({"message": "Login successful", "user":  {
+        "id": user[0],
+        "name": user[1],
+        "email": user[2]
+    }})
     else:
-        return jsonify({
-            "message": "Invalid email or password"
-        }), 401
-    
-    
+        return jsonify({"message": "Invalid email or password"}), 401
 
 
+print("Available Routes:")
+for rule in app.url_map.iter_rules():
+    print(rule)
 
-
+# ---------------- RUN SERVER ----------------
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
