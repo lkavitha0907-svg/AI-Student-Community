@@ -1,0 +1,59 @@
+from flask import Blueprint, request, jsonify
+from database import get_db_connection
+
+auth = Blueprint("auth", __name__)
+
+# ---------------- REGISTER ----------------
+@auth.route("/register", methods=["POST"])
+def register():
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    data = request.json
+    name = data["name"]
+    email = data["email"]
+    password = data["password"]
+
+    cursor.execute(
+        "INSERT INTO students(name,email,password) VALUES(%s,%s,%s)",
+        (name, email, password)
+    )
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return jsonify({"message": "Registered successfully"})
+
+
+# ---------------- LOGIN ----------------
+@auth.route("/login", methods=["POST"])
+def login():
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    data = request.json
+
+    cursor.execute(
+        "SELECT * FROM students WHERE email=%s AND password=%s",
+        (data["email"], data["password"])
+    )
+
+    user = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+    if user:
+        return jsonify({
+            "message": "Login successful",
+            "user": {
+                "id": user["id"],
+                "name": user["name"],
+                "email": user["email"]
+            }
+        })
+    else:
+        return jsonify({"message": "Invalid email or password"}), 401
