@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
-from database import get_db_connection
+from utils.response import success_response, error_response
+from database import execute_query
 
 auth = Blueprint("auth", __name__)
 
@@ -24,7 +25,9 @@ def register():
     cursor.close()
     conn.close()
 
-    return jsonify({"message": "Registered successfully"})
+    return success_response(
+    message="Registered successfully"
+)
 
 
 # ---------------- LOGIN ----------------
@@ -47,13 +50,13 @@ def login():
     conn.close()
 
     if user:
-        return jsonify({
-            "message": "Login successful",
-            "user": {
-                "id": user["id"],
-                "name": user["name"],
-                "email": user["email"]
-            }
-        })
+        return success_response(
+        {
+            "id": user["id"],
+            "name": user["name"],
+            "email": user["email"]
+        },
+        "Login successful"
+    )
     else:
-        return jsonify({"message": "Invalid email or password"}), 401
+        return error_response("Invalid email or password", 401)

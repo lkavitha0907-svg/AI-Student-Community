@@ -22,7 +22,7 @@ def get_quiz(note_id):
     cursor.close()
     conn.close()
 
-    return jsonify(data)
+    return success_response(data, "Quiz fetched successfully")
 
 
 # ---------------- SUBMIT QUIZ ----------------
@@ -64,10 +64,10 @@ def submit_quiz():
     cursor.close()
     conn.close()
 
-    return jsonify({
-        "message": "Quiz submitted",
-        "score": score
-    })
+    return success_response(
+    {"score": score},
+    "Quiz submitted successfully"
+    )
 #------------------GENERATE QUIZ QUESTIONS-----------------
 @quiz_bp.route("/generate-quiz/<int:note_id>", methods=["GET"])
 def generate_quiz(note_id):

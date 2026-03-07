@@ -24,7 +24,6 @@ def home():
 @app.route("/test")
 def test():
     return "TEST WORKING"
-
 # ---------------- RUN SERVER ----------------
 if __name__ == "__main__":
 
