@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
-from database import get_db_connection
+from utils.response import success_response, error_response
+from database import execute_query
 
 notes_bp = Blueprint("notes", __name__)
 
@@ -25,8 +26,7 @@ def upload_notes():
     cursor.close()
     conn.close()
 
-    return jsonify({"message": "Notes uploaded successfully"})
-
+    return success_response(message="Notes uploaded successfully")
 
 # ---------------- GET NOTES ----------------
 @notes_bp.route("/notes", methods=["GET"])
@@ -41,7 +41,7 @@ def get_notes():
     cursor.close()
     conn.close()
 
-    return jsonify(notes)
+    return success_response(notes, "Notes fetched successfully")
 
 
 # ---------------- TEST UPLOAD ----------------

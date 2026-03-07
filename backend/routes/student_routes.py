@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify
-from database import get_db_connection
-
+from database import execute_query
+from utils.response import success_response, error_response
 students_bp = Blueprint("students", __name__)
 
 # ---------------- GET ALL STUDENTS ----------------
@@ -23,17 +23,13 @@ def students():
 @students_bp.route("/student/<int:id>", methods=["GET"])
 def get_student(id):
 
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-
-    cursor.execute(
+    student = execute_query(
         "SELECT id, name, email FROM students WHERE id=%s",
-        (id,)
+        (id,),
+        fetchone=True
     )
 
-    student = cursor.fetchone()
-
-    cursor.close()
-    conn.close()
-
-    return jsonify(student)
+    if student:
+        return success_response(student, "Student fetched successfully")
+    else:
+        return error_response("Student not found", 404)
