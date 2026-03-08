@@ -1,6 +1,6 @@
 import random
 
-def generate_quiz(text):
+def generate_questions(text):
     sentences = text.split(".")
     questions = []
 
@@ -9,15 +9,15 @@ def generate_quiz(text):
 
         if len(words) > 6:
             question = {
-                "question": "What is the meaning of the following sentence?",
-                "text": sentence.strip(),
+                "question": "What does the following statement describe?",
+                "statement": sentence.strip(),
                 "options": [
-                    "Option A",
-                    "Option B",
-                    "Option C",
-                    "Option D"
+                    "Artificial Intelligence",
+                    "Machine Learning",
+                    "Data Science",
+                    "Cloud Computing"
                 ],
-                "answer": "Option A"
+                "answer": "Artificial Intelligence"
             }
 
             questions.append(question)
@@ -25,10 +25,15 @@ def generate_quiz(text):
     return questions
 
 
-# test example
+# Test example
 if __name__ == "__main__":
-    sample = "Artificial Intelligence is the simulation of human intelligence by machines. It is widely used in modern technology."
+    sample_text = """
+    Artificial Intelligence is the simulation of human intelligence by machines.
+    Machine Learning allows computers to learn from data.
+    Data Science is used to analyze large datasets.
+    """
 
-    quiz = generate_quiz(sample)
+    quiz = generate_questions(sample_text)
 
-    print(quiz)
+    for q in quiz:
+        print(q)
