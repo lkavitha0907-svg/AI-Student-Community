@@ -1,3 +1,4 @@
+from pdf_reader import extract_text_from_pdf
 import random
 
 def generate_questions(text):
