@@ -29,6 +29,7 @@ def get_student(id):
         fetchone=True
     )
 
+    
     if student:
         return success_response(student, "Student fetched successfully")
     else:

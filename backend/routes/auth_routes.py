@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
+from database import get_db_connection
 from utils.response import success_response, error_response
-from database import execute_query
+
 
 auth = Blueprint("auth", __name__)
 

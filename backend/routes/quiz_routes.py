@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from database import get_db_connection
-from utils.ai_generator import generate_questions
+from utils.response import success_response, error_response
 
 quiz_bp = Blueprint("quiz", __name__)
 
@@ -32,8 +32,13 @@ def submit_quiz():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    user_id = request.json.get("user_id")
-    answers = request.json.get("answers")
+    data = request.get_json()
+
+    user_id = data.get("user_id")
+    answers = data.get("answers")
+
+    if not answers:
+        return error_response("Answers are required")
 
     score = 0
 
@@ -46,7 +51,12 @@ def submit_quiz():
             (quiz_id,)
         )
 
-        correct = cursor.fetchone()["correct_answer"]
+        result = cursor.fetchone()
+
+        if not result:
+            continue
+
+        correct = result["correct_answer"]
 
         is_correct = selected == correct
 
@@ -65,8 +75,8 @@ def submit_quiz():
     conn.close()
 
     return success_response(
-    {"score": score},
-    "Quiz submitted successfully"
+        {"score": score},
+        "Quiz submitted successfully"
     )
 #------------------GENERATE QUIZ QUESTIONS-----------------
 @quiz_bp.route("/generate-quiz/<int:note_id>", methods=["GET"])
