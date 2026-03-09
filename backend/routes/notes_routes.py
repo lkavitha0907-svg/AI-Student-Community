@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from utils.response import success_response, error_response
-from database import execute_query
+from database import get_db_connection
 
 notes_bp = Blueprint("notes", __name__)
 
