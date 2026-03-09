@@ -5,6 +5,16 @@ Web-based student community with AI quiz generation
 
 AI Student Community is a backend system that allows students to upload study notes and generate quizzes automatically to test their knowledge.
 
+## System Architecture
+
+The project consists of three main modules:
+
+Frontend – User interface for students to upload notes and take quizzes.
+
+Backend – Flask API that handles authentication, note management, and quiz evaluation.
+
+AI Module – Generates quiz questions automatically from uploaded notes.
+
 ## Features
 
 - User Registration
