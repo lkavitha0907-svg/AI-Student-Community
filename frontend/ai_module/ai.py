@@ -25,6 +25,17 @@ def generate_questions(text):
 
     return questions
 
+def generate_quiz_from_pdf(pdf_file):
+    from pdf_reader import extract_text_from_pdf
+
+    # Extract text from the PDF
+    text = extract_text_from_pdf(pdf_file)
+
+    # Generate questions from extracted text
+    questions = generate_questions(text)
+
+    return questions
+
 
 # Test example
 if __name__ == "__main__":
