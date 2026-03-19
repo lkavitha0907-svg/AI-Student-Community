@@ -23,12 +23,25 @@ def get_quizzes():
 
     quizzes = query.order_by(Quiz.created_at.desc()).all()
 
+    from datetime import date, datetime
+    today_start = datetime.combine(date.today(), datetime.min.time())
+
     result = []
     for q in quizzes:
         q_dict = q.to_dict()
         attempt = QuizAttempt.query.filter_by(user_id=user_id, quiz_id=q.id).first()
         q_dict['already_attempted'] = attempt is not None
         q_dict['attempt'] = attempt.to_dict() if attempt else None
+
+        # Check if student already attempted any quiz in this subject today
+        subject_attempt_today = QuizAttempt.query\
+            .join(Quiz, QuizAttempt.quiz_id == Quiz.id)\
+            .filter(
+                QuizAttempt.user_id == user_id,
+                Quiz.subject_id == q.subject_id,
+                QuizAttempt.completed_at >= today_start
+            ).first()
+        q_dict['subject_attempted_today'] = subject_attempt_today is not None and not attempt
         result.append(q_dict)
 
     return jsonify({'quizzes': result}), 200
@@ -47,12 +60,13 @@ def get_quiz(quiz_id):
 
 @quiz_bp.route('/generate', methods=['POST'])
 @jwt_required()
+
 def generate_quiz():
     """Generate quiz from a note using AI — supports text and PDF."""
+    user_id = int(get_jwt_identity())
     data = request.get_json()
     note_id = data.get('note_id')
-    num_questions = min(data.get('num_questions', 5), 10)
-
+    num_questions = min(data.get('num_questions', 10), 10)
     note = Note.query.get_or_404(note_id)
 
     # Create quiz
@@ -79,7 +93,7 @@ def generate_quiz():
             full_text = full_text + "\n" + file_text
 
     # Generate questions using AI service
-    questions_data = generate_questions_from_text(full_text, num_questions)
+    questions_data = generate_questions_from_text(full_text, num_questions, user_seed=user_id)
 
     for q_data in questions_data:
         question = Question(
@@ -104,9 +118,23 @@ def submit_quiz(quiz_id):
     user = User.query.get_or_404(user_id)
     quiz = Quiz.query.get_or_404(quiz_id)
 
+    # Prevent re-attempt on same quiz
     existing = QuizAttempt.query.filter_by(user_id=user_id, quiz_id=quiz_id).first()
     if existing:
         return jsonify({'error': 'Already attempted this quiz'}), 403
+
+    # Prevent more than one quiz per subject per day
+    from datetime import date
+    today_start = datetime.combine(date.today(), datetime.min.time())
+    subject_attempt_today = QuizAttempt.query\
+        .join(Quiz, QuizAttempt.quiz_id == Quiz.id)\
+        .filter(
+            QuizAttempt.user_id == user_id,
+            Quiz.subject_id == quiz.subject_id,
+            QuizAttempt.completed_at >= today_start
+        ).first()
+    if subject_attempt_today:
+        return jsonify({'error': f'You already attempted a {quiz.subject.name} quiz today! Come back tomorrow.'}), 403
 
     data = request.get_json()
     answers = data.get('answers', {})
@@ -120,6 +148,8 @@ def submit_quiz(quiz_id):
     from flask import current_app
     xp_earned = score + current_app.config.get('XP_PER_QUIZ_COMPLETION', 50)
 
+    old_level = user.level
+
     attempt = QuizAttempt(
         user_id=user_id,
         quiz_id=quiz_id,
@@ -131,10 +161,36 @@ def submit_quiz(quiz_id):
     user.add_xp(xp_earned)
     db.session.commit()
 
+    breakdown = []
+    for question in quiz.questions:
+        user_answer = answers.get(str(question.id), '')
+        is_correct = bool(user_answer) and user_answer.upper() == question.correct_answer
+        breakdown.append({
+            'question_id': question.id,
+            'question_text': question.question_text,
+            'user_answer': user_answer.upper() if user_answer else 'Skipped',
+            'correct_answer': question.correct_answer,
+            'is_correct': is_correct,
+            'options': {
+                'A': question.option_a,
+                'B': question.option_b,
+                'C': question.option_c,
+                'D': question.option_d,
+            },
+            'points_earned': question.points if is_correct else 0
+        })
+
+    leveled_up = user.level > old_level
+
     return jsonify({
         'attempt': attempt.to_dict(),
         'score': score,
         'xp_earned': xp_earned,
         'level': user.level,
+        'old_level': old_level,
         'total_xp': user.total_xp,
+        'leveled_up': leveled_up,
+        'breakdown': breakdown,
+        'correct_count': sum(1 for b in breakdown if b['is_correct']),
+        'wrong_count': sum(1 for b in breakdown if not b['is_correct']),
     }), 200

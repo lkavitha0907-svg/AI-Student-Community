@@ -76,6 +76,33 @@ def upvote_note(note_id):
     db.session.commit()
     return jsonify({'upvotes': note.upvotes}), 200
 
+@notes_bp.route('/<int:note_id>', methods=['DELETE'])
+@jwt_required()
+def delete_note(note_id):
+    user_id = int(get_jwt_identity())
+    note = Note.query.get_or_404(note_id)
+    if note.user_id != user_id:
+        return jsonify({'error': 'Not authorized'}), 403
+
+    from models.quiz import Quiz, Question
+    from models.attempt import QuizAttempt
+
+    # Step 1 - delete all questions and attempts first
+    quizzes = Quiz.query.filter_by(generated_from_note_id=note_id).all()
+    for quiz in quizzes:
+        Question.query.filter_by(quiz_id=quiz.id).delete(synchronize_session=False)
+        QuizAttempt.query.filter_by(quiz_id=quiz.id).delete(synchronize_session=False)
+    db.session.flush()
+
+    # Step 2 - now delete the quizzes
+    Quiz.query.filter_by(generated_from_note_id=note_id).delete(synchronize_session=False)
+    db.session.flush()
+
+    # Step 3 - now safe to delete the note
+    db.session.delete(note)
+    db.session.commit()
+    return jsonify({'message': 'Note deleted'}), 200
+
 @notes_bp.route('/uploads/<filename>')
 def serve_file(filename):
     return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename)

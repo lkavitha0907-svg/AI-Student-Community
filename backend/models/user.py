@@ -27,7 +27,24 @@ class User(db.Model):
 
     def add_xp(self, amount):
         self.total_xp += amount
-        self.level = max(1, self.total_xp // 200 + 1)
+        self.level = max(1, self._calculate_level(self.total_xp))
+
+    @staticmethod
+    def _calculate_level(xp):
+        # Progressive XP thresholds per level
+        thresholds = [0, 300, 800, 1500, 2500, 4000, 6000, 8500, 11500, 15000]
+        level = 1
+        for i, threshold in enumerate(thresholds):
+            if xp >= threshold:
+                level = i + 1
+        return level
+
+    @staticmethod
+    def xp_for_next_level(current_level):
+        thresholds = [0, 300, 800, 1500, 2500, 4000, 6000, 8500, 11500, 15000]
+        if current_level < len(thresholds):
+            return thresholds[current_level]
+        return thresholds[-1] + (current_level - len(thresholds) + 1) * 5000
 
     def to_dict(self, include_private=False):
         data = {

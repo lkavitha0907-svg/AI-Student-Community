@@ -112,7 +112,11 @@ export default function Dashboard() {
                   </div>
                   {q.already_attempted
                     ? <span className="badge badge-success">✓ Done</span>
-                    : <button className="btn btn-primary btn-sm" onClick={() => navigate(`/quiz/${q.id}`)}>Play</button>
+                    : q.subject_attempted_today
+                    ? <span style={{ fontSize: '0.72rem', color: '#ff4757', fontFamily: 'var(--font-mono)' }}>🔒 Today's done</span>
+                    : <button className="btn btn-outline btn-sm" onClick={() => navigate('/quiz')}>
+                        New! →
+                      </button>
                   }
                 </div>
               </div>

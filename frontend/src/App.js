@@ -4,6 +4,7 @@ import { ToastProvider } from './hooks/useToast';
 import Sidebar from './components/Sidebar';
 import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
+import RulesPage from './pages/RulesPage';
 import { QuizListPage, QuizPlayerPage } from './pages/QuizPage';
 import NotesPage from './pages/NotesPage';
 import ChatPage from './pages/ChatPage';
@@ -59,6 +60,9 @@ function AppRoutes() {
       } />
       <Route path="/profile" element={
         <ProtectedRoute><AppLayout><ProfilePage /></AppLayout></ProtectedRoute>
+      } />
+      <Route path="/rules" element={
+        <ProtectedRoute><AppLayout><RulesPage /></AppLayout></ProtectedRoute>
       } />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
